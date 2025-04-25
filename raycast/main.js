@@ -7,15 +7,6 @@ let height = window.innerHeight;
 canvas.width = width;
 canvas.height = height;
 
-// Load floor texture image
-const floorTexture = new Image();
-floorTexture.src = 'public/Tile Texture/Tiles New.jpg';
-
-let floorTextureLoaded = false;
-floorTexture.onload = () => {
-  floorTextureLoaded = true;
-};
-
 // Map configuration: 1 = wall, 0 = empty space, 2 = door
 const map = [
   [1,1,1,1,1,1,1,1,1,1],
@@ -136,51 +127,14 @@ function render3DView() {
   if (player.speed !== 0) {
     verticalOffset = Math.sin(walkCycle) * 6; // 6 pixels vertical bobbing amplitude
   }
-
-  // Draw floor texture if loaded
-  if (floorTextureLoaded) {
-    // Optimized floor casting with texture mapping
-    let verticalOffset = 0;
-    if (player.speed !== 0) {
-      verticalOffset = Math.sin(walkCycle) * 6; // 6 pixels vertical bobbing amplitude
-    }
-    let floorStart = height / 2 + verticalOffset;
-    let step = 6; // sample every 4 pixels horizontally and vertically for performance
-
-    // Create offscreen canvas for floor texture data if not exists
-    if (!render3DView.offscreenCanvas) {
-      render3DView.offscreenCanvas = document.createElement('canvas');
-      render3DView.offscreenCanvas.width = floorTexture.width;
-      render3DView.offscreenCanvas.height = floorTexture.height;
-      render3DView.offscreenCtx = render3DView.offscreenCanvas.getContext('2d');
-      render3DView.offscreenCtx.drawImage(floorTexture, 0, 0);
-      render3DView.floorImageData = render3DView.offscreenCtx.getImageData(0, 0, floorTexture.width, floorTexture.height);
-    }
-
-    for (let y = floorStart; y < height; y += step) {
-      // Distance from the player to the floor slice
-      let rayDistance = (tileSize * height) / (2 * (y - floorStart));
-
-      for (let x = 0; x < width; x += step) {
-        // Calculate floor texture coordinates
-        let rayAngle = player.angle - fov / 2 + (x / width) * fov;
-        let floorX = player.x + rayDistance * Math.cos(rayAngle);
-        let floorY = player.y + rayDistance * Math.sin(rayAngle);
-
-        // Map floorX and floorY to texture coordinates
-        let tx = Math.floor((floorX % tileSize) / tileSize * floorTexture.width);
-        let ty = Math.floor((floorY % tileSize) / tileSize * floorTexture.height);
-
-        let idx = (ty * floorTexture.width + tx) * 4;
-        let r = render3DView.floorImageData.data[idx];
-        let g = render3DView.floorImageData.data[idx + 0];
-        let b = render3DView.floorImageData.data[idx + 0];
-
-        ctx.fillStyle = `rgb(${r},${g},${b})`;
-        ctx.fillRect(x, y, step, step);
-      }
-    }
-  }
+  
+  // Draw ceiling (top half)
+  ctx.fillStyle = '#0000'; // Sky black color
+  ctx.fillRect(0, 0, width, height / 2 + verticalOffset);
+  
+  // Draw floor (bottom half)
+  ctx.fillStyle = '#0000'; // Black color for floor
+  ctx.fillRect(0, height / 2 + verticalOffset, width, height / 2 - verticalOffset);
 
   for (let i = 0; i < numRays; i++) {
     let rayAngle = player.angle - fov / 2 + (i / numRays) * fov;
@@ -211,7 +165,7 @@ function render3DView() {
   // Display "Press E to open" message when near a door
   if (showInteractionMessage) {
     ctx.font = '24px Arial';
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = 'red';
     ctx.textAlign = 'center';
     ctx.fillText('Press E to open the door', width / 2, height - 50);
   }
