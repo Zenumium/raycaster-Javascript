@@ -649,13 +649,13 @@
    function handleKeyDown(e) {
      if (!gameStarted) return;
      // Arrow keys and WASD for movement
-     if (e.key === 'ArrowUp' || e.key === 'z') {
+     if (e.key === 'ArrowUp' || e.key === 'z'|| e.key === 'Z' || e.key === 'w'|| e.key === 'W') {
        player.speed = 2;
-     } else if (e.key === 'ArrowDown' || e.key === 's') {
+     } else if (e.key === 'ArrowDown' || e.key === 's'|| e.key === 'S') {
        player.speed = -2;
-     } else if (e.key === 'q') {
+     } else if (e.key === 'q'|| e.key === 'Q'|| e.key === 'a'|| e.key === 'A') {
        player.strafeSpeed = -2;
-     } else if (e.key === 'd') {
+     } else if (e.key === 'd'|| e.key === 'D') {
        player.strafeSpeed = 2;
      } else if (e.key === 'ArrowLeft') {
        player.turnSpeed = -0.05;
