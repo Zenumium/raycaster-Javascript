@@ -672,7 +672,7 @@
 
      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'z' || e.key === 'Z'|| e.key === 's' || e.key === 'S' || e.key === 'w' || e.key === 'W') {
        player.speed = 0;
-     } else if (e.key === 'q' || e.key === 'd' || e.key === 'q' || e.key === 'Q' || e.key === 'a' || e.key === 'A') {
+     } else if (e.key === 'q' || e.key === 'd'|| e.key === 'D' || e.key === 'q' || e.key === 'Q' || e.key === 'a' || e.key === 'A') {
        player.strafeSpeed = 0;
      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
        player.turnSpeed = 0;
