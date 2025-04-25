@@ -1,3 +1,5 @@
+import { drawMenu, setOnStartGameCallback } from './mainmenu.js';
+
 // Basic raycasting game engine inspired by DOOM
 
 const canvas = document.getElementById('gameCanvas');
@@ -27,7 +29,7 @@ const mapWidth = map[0].length;
 const mapHeight = map.length;
 const tileSize = 64;
 
-const fov = Math.PI / 4; // 60 degrees field of view
+const fov = Math.PI / 3; // 60 degrees field of view
 const numRays = width;
 const maxDepth = 1000;
 
@@ -127,40 +129,59 @@ function isWall(x, y) {
   return map[mapY][mapX] === 1;
 }
 
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowUp') {
+
+let gameStarted = false;
+
+function handleKeyDown(e) {
+  if (!gameStarted) return;
+  // Arrow keys and WASD for movement
+  if (e.key === 'ArrowUp' || e.key === 'z') {
     player.speed = 3;
-  } else if (e.key === 'ArrowDown') {
+  } else if (e.key === 'ArrowDown' || e.key === 's') {
     player.speed = -3;
-  } else if (e.key === 'ArrowLeft') {
+  } else if (e.key === 'ArrowLeft' || e.key === 'q') {
     player.turnSpeed = -0.05;
-  } else if (e.key === 'ArrowRight') {
+  } else if (e.key === 'ArrowRight' || e.key === 'd') {
     player.turnSpeed = 0.05;
-  }else if (e.key === 'z') {
+  }else if (e.key ==='z') {
     player.speed = 3;
-  }else if (e.key === 's') {
+  }
+  else if (e.key === 's') {
     player.speed = -3;
-  }else if (e.key === 'q') {
+  } else if (e.key === 'q') {
     player.turnSpeed = -0.05;
-  }else if (e.key === 'd') {
+  } else if (e.key === 'd') {
     player.turnSpeed = 0.05;
   }
-});
+}
 
-window.addEventListener('keyup', (e) => {
-  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+function handleKeyUp(e) {
+  if (!gameStarted) return;
+
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'z' || e.key === 's') {
     player.speed = 0;
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'q' || e.key === 'd') {
     player.turnSpeed = 0;
-  }else if (e.key === 'z') {
+  }else if (e.key ==='z') {
     player.speed = 0;
   }else if (e.key === 's') {
-    player.speed = 0;
-  }else if (e.key === 'q') {
-    player.turnSpeed = 0;
-  }else if (e.key === 'd'){
-    player.turnSpeed = 0;
-    } 
-});
+    player.speed = -0;
+  } else if (e.key === 'q') {
+    player.turnSpeed = -0.00;
+  } else if (e.key === 'd') {
+    player.turnSpeed = 0.00;
+  }
+}
 
-gameLoop();
+window.addEventListener('keydown', handleKeyDown);
+window.addEventListener('keyup', handleKeyUp);
+
+function startGame() {
+  gameStarted = true;
+  gameLoop();
+}
+
+setOnStartGameCallback(startGame);
+
+// Initially draw the menu
+drawMenu();
