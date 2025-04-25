@@ -16,10 +16,10 @@ const map = [
   [1,1,1,1,1,1,1,1,1,1],
   [1,"p",0,0,0,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,1,0,0,0,1],
-  [1,0,0,1,0,0,1,0,0,1],
-  [1,0,0,1,0,0,1,0,0,1],
-  [1,0,0,0,1,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,1],
   [1,1,1,1,1,1,1,1,1,1],
@@ -40,6 +40,8 @@ let player = {
   speed: 0,
   turnSpeed: 0,
 };
+
+let walkCycle = 0; // Counter for walking cycle to simulate camera bobbing
 
 function castRay(rayAngle) {
   rayAngle = normalizeAngle(rayAngle);
@@ -79,6 +81,12 @@ function normalizeAngle(angle) {
 function render3DView() {
   ctx.clearRect(0, 0, width, height);
 
+  // Calculate vertical offset for camera bobbing
+  let verticalOffset = 0;
+  if (player.speed !== 0) {
+    verticalOffset = Math.sin(walkCycle) * 5; // 5 pixels vertical bobbing amplitude
+  }
+
   for (let i = 0; i < numRays; i++) {
     let rayAngle = player.angle - fov / 2 + (i / numRays) * fov;
     let ray = castRay(rayAngle);
@@ -93,8 +101,8 @@ function render3DView() {
     let shade = 255 - Math.min(255, correctedDistance * 0.5);
     ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
 
-    // Draw vertical slice
-    ctx.fillRect(i, (height / 2) - wallHeight / 2, 1, wallHeight);
+    // Draw vertical slice with vertical offset for bobbing
+    ctx.fillRect(i, (height / 2) - wallHeight / 2 + verticalOffset, 1, wallHeight);
   }
 }
 
@@ -116,6 +124,13 @@ function update() {
   if (!isWall(newX, newY)) {
     player.x = newX;
     player.y = newY;
+  }
+
+  // Update walking cycle for camera bobbing if moving
+  if (player.speed !== 0) {
+    walkCycle += 0.13; // Adjust speed of bobbing here
+  } else {
+    walkCycle = 0; // Reset when not moving
   }
 }
 
