@@ -95,7 +95,7 @@ function render3DView() {
   // Calculate vertical offset for camera bobbing
   let verticalOffset = 0;
   if (player.speed !== 0) {
-    verticalOffset = Math.sin(walkCycle) * 5; // 5 pixels vertical bobbing amplitude
+    verticalOffset = Math.sin(walkCycle) * 6; // 5 pixels vertical bobbing amplitude
   }
 
   for (let i = 0; i < numRays; i++) {
