@@ -136,18 +136,17 @@ function handleKeyDown(e) {
   if (!gameStarted) return;
   // Arrow keys and WASD for movement
   if (e.key === 'ArrowUp' || e.key === 'z') {
-    player.speed = 3;
+    player.speed = 2;
   } else if (e.key === 'ArrowDown' || e.key === 's') {
-    player.speed = -3;
+    player.speed = -2;
   } else if (e.key === 'ArrowLeft' || e.key === 'q') {
     player.turnSpeed = -0.05;
   } else if (e.key === 'ArrowRight' || e.key === 'd') {
     player.turnSpeed = 0.05;
-  }else if (e.key ==='z') {
-    player.speed = 3;
-  }
-  else if (e.key === 's') {
-    player.speed = -3;
+  } else if (e.key ==='z') {
+    player.speed = 2;
+  } else if (e.key === 's') {
+    player.speed = -2;
   } else if (e.key === 'q') {
     player.turnSpeed = -0.05;
   } else if (e.key === 'd') {
@@ -162,9 +161,9 @@ function handleKeyUp(e) {
     player.speed = 0;
   } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'q' || e.key === 'd') {
     player.turnSpeed = 0;
-  }else if (e.key ==='z') {
+  } else if (e.key ==='z') {
     player.speed = 0;
-  }else if (e.key === 's') {
+  } else if (e.key === 's') {
     player.speed = -0;
   } else if (e.key === 'q') {
     player.turnSpeed = -0.00;
