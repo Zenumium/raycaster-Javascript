@@ -1,7 +1,3 @@
-import { drawMenu, setOnStartGameCallback } from './mainmenu.js';
-
-// Basic raycasting game engine inspired by DOOM
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -260,7 +256,4 @@ function startGame() {
   gameLoop();
 }
 
-setOnStartGameCallback(startGame);
-
-// Initially draw the menu
-drawMenu();
+startGame();
