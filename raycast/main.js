@@ -20,27 +20,27 @@
 
    // Map configuration: 1 = wall, 0 = empty space, 2 = door
    const map = [
-     [1,1,1,1,1,1,1,1,1,1],
-     [1,"p",0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,1,1,1,1,1,1,1,1],
-     [1,0,1,1,1,1,1,1,1,1],
-     [1,0,0,2,0,0,0,0,0,1],  // Added a door (2) here
-     [1,1,1,1,1,1,1,1,0,1],
-     [1,0,0,0,2,0,0,0,0,1],
-     [1,2,1,1,1,1,1,1,1,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,1],
-     [1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],  // Added a door (2) here
+     [1,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
    ];
 
    // Track door states (open or closed)
@@ -51,15 +51,17 @@
    const mapHeight = map.length;
    const tileSize = 64;
    const fov = Math.PI / 2;
-   const maxDepth = 1000;
+   const maxDepth = 2000;
 
    // Player state
    let player = {
      x: tileSize * 1.5,
      y: tileSize * 1.5,
      angle: 0,
+     pitch: 0, // vertical look angle
      speed: 0,
      turnSpeed: 0,
+     strafeSpeed: 0,
    };
 
    let walkCycle = 0;
@@ -386,11 +388,13 @@
      gl.depthFunc(gl.LEQUAL);
      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-     // Calculate vertical offset for camera bobbing
+     // Calculate vertical offset for camera bobbing and vertical look
      let verticalOffset = 0;
      if (player.speed !== 0) {
        verticalOffset = Math.sin(walkCycle) * 0.05; // Convert to normalized device coordinates
      }
+     // Add vertical look offset based on player.pitch
+     verticalOffset += player.pitch * 0.5; // Adjust multiplier for desired vertical look effect
 
      // Create perspective projection matrix
      const aspect = canvas.clientWidth / canvas.clientHeight;
@@ -538,12 +542,19 @@
    }
 
    function update() {
-     // Update player position based on speed and turnSpeed
+     // Update player position based on speed, turnSpeed, and strafeSpeed
      player.angle += player.turnSpeed;
 
      let moveStep = player.speed;
+     let strafeStep = player.strafeSpeed;
+
+     // Calculate new position with forward/backward movement
      let newX = player.x + Math.cos(player.angle) * moveStep;
      let newY = player.y + Math.sin(player.angle) * moveStep;
+
+     // Calculate strafe movement perpendicular to player angle
+     newX += Math.cos(player.angle + Math.PI / 2) * strafeStep;
+     newY += Math.sin(player.angle + Math.PI / 2) * strafeStep;
 
      // Collision detection
      if (!isWall(newX, newY)) {
@@ -553,7 +564,7 @@
 
      // Update walking cycle for camera bobbing if moving
      if (player.speed !== 0) {
-       walkCycle += 0.13; // Adjust speed of bobbing here
+       walkCycle += 0.1; // Adjust speed of bobbing here
      } else {
        walkCycle = 0; // Reset when not moving
      }
@@ -642,9 +653,13 @@
        player.speed = 2;
      } else if (e.key === 'ArrowDown' || e.key === 's') {
        player.speed = -2;
-     } else if (e.key === 'ArrowLeft' || e.key === 'q') {
+     } else if (e.key === 'q') {
+       player.strafeSpeed = -2;
+     } else if (e.key === 'd') {
+       player.strafeSpeed = 2;
+     } else if (e.key === 'ArrowLeft') {
        player.turnSpeed = -0.05;
-     } else if (e.key === 'ArrowRight' || e.key === 'd') {
+     } else if (e.key === 'ArrowRight') {
        player.turnSpeed = 0.05;
      } else if (e.key === 'e' || e.key === 'E') {
        // Interact with door when E is pressed
@@ -657,13 +672,43 @@
 
      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'z' || e.key === 's') {
        player.speed = 0;
-     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'q' || e.key === 'd') {
+     } else if (e.key === 'q' || e.key === 'd') {
+       player.strafeSpeed = 0;
+     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
        player.turnSpeed = 0;
      }
    }
 
    window.addEventListener('keydown', handleKeyDown);
    window.addEventListener('keyup', handleKeyUp);
+
+   // Request pointer lock on canvas click to capture mouse movement
+   canvas.addEventListener('click', () => {
+     canvas.requestPointerLock();
+   });
+
+   // Mouse move event to update player angle for looking around
+   window.addEventListener('mousemove', (e) => {
+     if (document.pointerLockElement === canvas) {
+       // Adjust sensitivity as needed
+       const sensitivity = 0.002;
+       player.angle += e.movementX * sensitivity;
+
+       // Normalize angle between 0 and 2*PI
+       if (player.angle < 0) {
+         player.angle += 2 * Math.PI;
+       } else if (player.angle >= 2 * Math.PI) {
+         player.angle -= 2 * Math.PI;
+       }
+
+       // Update vertical look (pitch)
+       player.pitch -= e.movementY * sensitivity;
+       // Clamp pitch between -PI/2 and PI/2
+       const maxPitch = Math.PI / 2;
+       if (player.pitch > maxPitch) player.pitch = maxPitch;
+       if (player.pitch < -maxPitch) player.pitch = -maxPitch;
+     }
+   });
 
    // Simple matrix library implementation (minimized version of gl-matrix)
    const mat4 = {
