@@ -27,7 +27,7 @@ const mapWidth = map[0].length;
 const mapHeight = map.length;
 const tileSize = 64;
 
-const fov = Math.PI / 3; // 60 degrees field of view
+const fov = Math.PI / 4; // 60 degrees field of view
 const numRays = width;
 const maxDepth = 1000;
 
