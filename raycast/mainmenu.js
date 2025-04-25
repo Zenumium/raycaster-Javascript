@@ -3,7 +3,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const menuOptions = ['Start Game', 'Instructions', 'Settings', 'Exit'];
+const menuOptions = ['Start Game', 'Instructions', 'Settings'];
 let selectedOption = 0;
 let onStartGameCallback = null;
 
@@ -19,7 +19,7 @@ function drawMenu() {
 
   ctx.fillText('Raycasting Game', canvas.width / 2, 100);
 
-  ctx.font = '36px Arial';
+  ctx.font = '32px Arial';
 
   menuOptions.forEach((option, index) => {
     if (index === selectedOption) {
@@ -49,14 +49,32 @@ function selectOption() {
         onStartGameCallback();
       }
       break;
-    case 'Instructions':
-      alert('Use arrow keys or WASD to move and turn.');
+      case 'Instructions':
+        // Create a modal or a popup to display the instructions
+        const instructionsModal = document.getElementById('instructions-modal');
+        if (!instructionsModal) {
+          // Create the modal if it doesn't exist
+          const modal = document.createElement('div');
+          modal.id = 'instructions-modal';
+          modal.innerHTML = `
+            <h2>Instructions</h2>
+            <p>Use arrow keys or WASD to move and turn.</p>
+            <button id="close-instructions">Close</button>
+          `;
+          document.body.appendChild(modal);
+        } else {
+          // Show the modal if it already exists
+          instructionsModal.style.display = 'block';
+        }
+      
+        // Add an event listener to close the modal when the close button is clicked
+        const closeButton = document.getElementById('close-instructions');
+        closeButton.addEventListener('click', () => {
+          instructionsModal.style.display = 'none';
+        });
       break;
     case 'Settings':
       alert('Settings menu not implemented yet.');
-      break;
-    case 'Exit':
-      alert('Exit selected. Closing game.');
       break;
   }
 }
@@ -77,7 +95,6 @@ window.addEventListener('keydown', (e) => {
       moveSelectionDown();
       break;
     case 'Enter':
-    case ' ':
       selectOption();
       break;
   }
