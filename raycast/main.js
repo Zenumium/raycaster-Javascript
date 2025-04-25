@@ -16,7 +16,7 @@ floorTexture.onload = () => {
   floorTextureLoaded = true;
 };
 
-// Map configuration: 1 = wall, 0 = empty space
+// Map configuration: 1 = wall, 0 = empty space, 2 = door
 const map = [
   [1,1,1,1,1,1,1,1,1,1],
   [1,"p",0,0,0,0,0,0,0,1],
@@ -29,10 +29,10 @@ const map = [
   [1,0,0,0,0,0,0,0,0,1],
   [1,0,1,1,1,1,1,1,1,1],
   [1,0,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,1],
+  [1,0,0,2,0,0,0,0,0,1],  // Added a door (2) here
   [1,1,1,1,1,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,1,1,1,1,1,1],
+  [1,0,0,0,2,0,0,0,0,1],
+  [1,2,1,1,1,1,1,1,1,1],
   [1,0,0,0,0,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,1],
@@ -40,6 +40,25 @@ const map = [
   [1,0,0,0,0,0,0,0,0,1],
   [1,1,1,1,1,1,1,1,1,1],
 ];
+
+// Track door states (open or closed)
+const doors = [];
+
+// Initialize doors from map
+function initDoors() {
+  for (let y = 0; y < map.length; y++) {
+    for (let x = 0; x < map[y].length; x++) {
+      if (map[y][x] === 2) {
+        doors.push({
+          x: x,
+          y: y,
+          isOpen: false,
+          openAmount: 0 // 0 = fully closed, 1 = fully open
+        });
+      }
+    }
+  }
+}
 
 const mapWidth = map[0].length;
 const mapHeight = map.length;
@@ -58,6 +77,8 @@ let player = {
 };
 
 let walkCycle = 0; // Counter for walking cycle to simulate camera bobbing
+let showInteractionMessage = false;
+let nearbyDoor = null;
 
 function castRay(rayAngle) {
   rayAngle = normalizeAngle(rayAngle);
@@ -82,10 +103,23 @@ function castRay(rayAngle) {
       hitX = testX;
       hitY = testY;
       wallType = 1;
+    } else if (map[testY][testX] === 2) {
+      // Check if door is hit
+      const door = getDoorAt(testX, testY);
+      if (door && !door.isOpen) {
+        hit = true;
+        hitX = testX;
+        hitY = testY;
+        wallType = 2;
+      }
     }
   }
 
   return {distance, wallType};
+}
+
+function getDoorAt(x, y) {
+  return doors.find(door => door.x === x && door.y === y);
 }
 
 function normalizeAngle(angle) {
@@ -111,7 +145,7 @@ function render3DView() {
       verticalOffset = Math.sin(walkCycle) * 6; // 6 pixels vertical bobbing amplitude
     }
     let floorStart = height / 2 + verticalOffset;
-    let step = 7; // sample every 4 pixels horizontally and vertically for performance
+    let step = 6; // sample every 4 pixels horizontally and vertically for performance
 
     // Create offscreen canvas for floor texture data if not exists
     if (!render3DView.offscreenCanvas) {
@@ -158,12 +192,28 @@ function render3DView() {
     // Calculate wall height
     let wallHeight = (tileSize * height) / correctedDistance;
 
-    // Shade walls based on distance
-    let shade = 255 - Math.min(255, correctedDistance * 0.5);
-    ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
+    // Choose wall color based on type (normal wall or door)
+    let shade;
+    if (ray.wallType === 2) {
+      // Door color (brownish)
+      shade = 255 - Math.min(255, correctedDistance * 0.5);
+      ctx.fillStyle = `rgb(${shade},${shade * 0.6},${shade * 0.3})`;
+    } else {
+      // Normal wall color
+      shade = 255 - Math.min(255, correctedDistance * 0.5);
+      ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
+    }
 
     // Draw vertical slice with vertical offset for bobbing
     ctx.fillRect(i, (height / 2) - wallHeight / 2 + verticalOffset, 1, wallHeight);
+  }
+
+  // Display "Press E to open" message when near a door
+  if (showInteractionMessage) {
+    ctx.font = '24px Arial';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'center';
+    ctx.fillText('Press E to open the door', width / 2, height - 50);
   }
 }
 
@@ -193,6 +243,30 @@ function update() {
   } else {
     walkCycle = 0; // Reset when not moving
   }
+
+  // Check if player is near a door to show interaction message
+  checkDoorProximity();
+
+  // Update door animation if any door is in process of opening/closing
+  updateDoors();
+}
+
+function updateDoors() {
+  for (let door of doors) {
+    if (door.isOpen && door.openAmount < 1) {
+      // Door is opening
+      door.openAmount += 0.05;
+      if (door.openAmount >= 1) {
+        door.openAmount = 1;
+      }
+    } else if (!door.isOpen && door.openAmount > 0) {
+      // Door is closing
+      door.openAmount -= 0.05;
+      if (door.openAmount <= 0) {
+        door.openAmount = 0;
+      }
+    }
+  }
 }
 
 function isWall(x, y) {
@@ -202,9 +276,50 @@ function isWall(x, y) {
   if (mapX < 0 || mapX >= mapWidth || mapY < 0 || mapY >= mapHeight) {
     return true;
   }
-  return map[mapY][mapX] === 1;
+  
+  // Check if it's a wall
+  if (map[mapY][mapX] === 1) {
+    return true;
+  }
+  
+  // Check if it's a closed door
+  if (map[mapY][mapX] === 2) {
+    const door = getDoorAt(mapX, mapY);
+    return door && !door.isOpen;
+  }
+  
+  return false;
 }
 
+function checkDoorProximity() {
+  // Check if the player is near a door (within 2 tiles)
+  const doorInteractionDistance = tileSize * 2;
+  
+  showInteractionMessage = false;
+  nearbyDoor = null;
+  
+  for (let door of doors) {
+    const doorX = door.x * tileSize + tileSize / 2;
+    const doorY = door.y * tileSize + tileSize / 2;
+    
+    const distanceToDoor = Math.sqrt(
+      Math.pow(player.x - doorX, 2) + 
+      Math.pow(player.y - doorY, 2)
+    );
+    
+    if (distanceToDoor < doorInteractionDistance) {
+      showInteractionMessage = true;
+      nearbyDoor = door;
+      break;
+    }
+  }
+}
+
+function interactWithDoor() {
+  if (nearbyDoor) {
+    nearbyDoor.isOpen = !nearbyDoor.isOpen;
+  }
+}
 
 let gameStarted = false;
 
@@ -227,6 +342,9 @@ function handleKeyDown(e) {
     player.turnSpeed = -0.05;
   } else if (e.key === 'd') {
     player.turnSpeed = 0.05;
+  } else if (e.key === 'e' || e.key === 'E') {
+    // Interact with door when E is pressed
+    interactWithDoor();
   }
 }
 
@@ -253,6 +371,7 @@ window.addEventListener('keyup', handleKeyUp);
 
 function startGame() {
   gameStarted = true;
+  initDoors(); // Initialize doors before starting the game
   gameLoop();
 }
 
