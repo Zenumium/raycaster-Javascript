@@ -17,7 +17,7 @@ function drawMenu() {
   ctx.font = '48px Arial';
   ctx.textAlign = 'center';
 
-  ctx.fillText('Raycasting Game', canvas.width / 2, 100);
+  ctx.fillText('Raycast Demo', canvas.width / 2, 100);
 
   ctx.font = '32px Arial';
 
