@@ -73,10 +73,64 @@ function selectOption() {
           instructionsModal.style.display = 'none';
         });
       break;
-    case 'Settings':
-      alert('Settings menu not implemented yet.');
-      break;
-  }
+      case 'Settings':
+        // Create a modal or a popup to display the settings
+        const settingsModal = document.getElementById('settings-modal');
+        if (!settingsModal) {
+          // Create the modal if it doesn't exist
+          const modal = document.createElement('div');
+          modal.id = 'settings-modal';
+          modal.innerHTML = `
+            <h2>Settings</h2>
+            <p>Sound: <input type="checkbox" id="sound-checkbox" checked></p>
+            <p>FOV: <input type="range" id="fov-slider" min="30" max="120" value="60">
+              <span id="fov-value">60</span>
+            </p>
+            <p>Graphics: 
+              <select id="graphics-select">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </p>
+            <button id="close-settings">Close</button>
+          `;
+          document.body.appendChild(modal);
+        } else {
+          // Show the modal if it already exists
+          settingsModal.style.display = 'block';
+        }
+      
+        // Add an event listener to close the modal when the close button is clicked
+        const closeSettingsButton = document.getElementById('close-settings');
+        closeSettingsButton.addEventListener('click', () => {
+          settingsModal.style.display = 'none';
+        });
+      
+        // Add an event listener to update the FOV value when the slider is changed
+        const fovSlider = document.getElementById('fov-slider');
+        const fovValueSpan = document.getElementById('fov-value');
+        fovSlider.addEventListener('input', () => {
+          fovValueSpan.textContent = fovSlider.value;
+        });
+      
+        // Add an event listener to update the graphics setting when the select is changed
+        const graphicsSelect = document.getElementById('graphics-select');
+        graphicsSelect.addEventListener('change', () => {
+          // Update the graphics setting based on the selected value
+          switch (graphicsSelect.value) {
+            case 'low':
+              // Update graphics to low
+              break;
+            case 'medium':
+              // Update graphics to medium
+              break;
+            case 'high':
+              // Update graphics to high
+              break;
+          }
+        });
+      }
 }
 
 function setOnStartGameCallback(callback) {
