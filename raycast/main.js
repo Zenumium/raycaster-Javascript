@@ -1,332 +1,747 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+   // Get WebGL context
+   const canvas = document.getElementById('gameCanvas');
+   const gl = canvas.getContext('webgl');
+   const messageEl = document.getElementById('interaction-message');
 
-let width = window.innerWidth;
-let height = window.innerHeight;
+   if (!gl) {
+     alert('WebGL not supported. Please use a WebGL-compatible browser.');
+     throw new Error('WebGL not supported');
+   }
 
-canvas.width = width;
-canvas.height = height;
+   // Set canvas dimensions
+   function resizeCanvas() {
+     canvas.width = window.innerWidth;
+     canvas.height = window.innerHeight;
+     gl.viewport(0, 0, canvas.width, canvas.height);
+   }
+   
+   resizeCanvas();
+   window.addEventListener('resize', resizeCanvas);
 
-// Map configuration: 1 = wall, 0 = empty space, 2 = door
-const map = [
-  [1,1,1,1,1,1,1,1,1,1],
-  [1,"p",0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,1,1,1,1,1,1],
-  [1,0,1,1,1,1,1,1,1,1],
-  [1,0,0,2,0,0,0,0,0,1],  // Added a door (2) here
-  [1,1,1,1,1,1,1,1,0,1],
-  [1,0,0,0,2,0,0,0,0,1],
-  [1,2,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1],
-];
+   // Map configuration: 1 = wall, 0 = empty space, 2 = door
+   const map = [
+     [1,1,1,1,1,1,1,1,1,1],
+     [1,"p",0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,1,1,1,1,1,1,1,1],
+     [1,0,1,1,1,1,1,1,1,1],
+     [1,0,0,2,0,0,0,0,0,1],  // Added a door (2) here
+     [1,1,1,1,1,1,1,1,0,1],
+     [1,0,0,0,2,0,0,0,0,1],
+     [1,2,1,1,1,1,1,1,1,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,1],
+     [1,1,1,1,1,1,1,1,1,1],
+   ];
 
-// Track door states (open or closed)
-const doors = [];
+   // Track door states (open or closed)
+   const doors = [];
 
-// Initialize doors from map
-function initDoors() {
-  for (let y = 0; y < map.length; y++) {
-    for (let x = 0; x < map[y].length; x++) {
-      if (map[y][x] === 2) {
-        doors.push({
-          x: x,
-          y: y,
-          isOpen: false,
-          openAmount: 0 // 0 = fully closed, 1 = fully open
-        });
-      }
-    }
-  }
-}
+   // Game constants
+   const mapWidth = map[0].length;
+   const mapHeight = map.length;
+   const tileSize = 64;
+   const fov = Math.PI / 2;
+   const maxDepth = 1000;
 
-const mapWidth = map[0].length;
-const mapHeight = map.length;
-const tileSize = 64;
+   // Player state
+   let player = {
+     x: tileSize * 1.5,
+     y: tileSize * 1.5,
+     angle: 0,
+     speed: 0,
+     turnSpeed: 0,
+   };
 
-const fov = Math.PI / 3; // 60 degrees field of view
-const numRays = width;
-const maxDepth = 1000;
+   let walkCycle = 0;
+   let showInteractionMessage = false;
+   let nearbyDoor = null;
+   let gameStarted = false;
 
-let player = {
-  x: tileSize * 1.5,
-  y: tileSize * 1.5,
-  angle: 0,
-  speed: 0,
-  turnSpeed: 0,
-};
+   // Shader sources
+   const vertexShaderSource = `
+     attribute vec4 aVertexPosition;
+     attribute vec2 aTextureCoord;
 
-let walkCycle = 0; // Counter for walking cycle to simulate camera bobbing
-let showInteractionMessage = false;
-let nearbyDoor = null;
+     uniform mat4 uModelViewMatrix;
+     uniform mat4 uProjectionMatrix;
+     uniform float uVerticalOffset;
 
-function castRay(rayAngle) {
-  rayAngle = normalizeAngle(rayAngle);
+     varying highp vec2 vTextureCoord;
 
-  let distance = 0;
-  let hit = false;
-  let hitX = 0;
-  let hitY = 0;
-  let wallType = 0;
+     void main() {
+       vec4 position = aVertexPosition;
+       position.y += uVerticalOffset;
+       gl_Position = uProjectionMatrix * uModelViewMatrix * position;
+       vTextureCoord = aTextureCoord;
+     }
+   `;
 
-  while (!hit && distance < maxDepth) {
-    distance += 1;
+   const fragmentShaderSource = `
+     precision mediump float;
+     
+     uniform sampler2D uSampler;
+     uniform float uFogDistance;
+     uniform vec3 uWallColor;
+     uniform bool uIsTextured;
+     
+     varying highp vec2 vTextureCoord;
+     
+     void main() {
+       vec4 color;
+       
+       if (uIsTextured) {
+         color = texture2D(uSampler, vTextureCoord);
+       } else {
+         color = vec4(uWallColor, 1.0);
+       }
+       
+       // Apply distance fog effect
+       float fogFactor = 1.0 - min(1.0, uFogDistance / 10.0);
+       color.rgb = mix(color.rgb, vec3(0.0, 0.0, 0.0), fogFactor);
+       
+       gl_FragColor = color;
+     }
+   `;
 
-    let testX = Math.floor((player.x + Math.cos(rayAngle) * distance) / tileSize);
-    let testY = Math.floor((player.y + Math.sin(rayAngle) * distance) / tileSize);
+   // Compile shader
+   function compileShader(gl, source, type) {
+     const shader = gl.createShader(type);
+     gl.shaderSource(shader, source);
+     gl.compileShader(shader);
 
-    if (testX < 0 || testX >= mapWidth || testY < 0 || testY >= mapHeight) {
-      hit = true;
-      distance = maxDepth;
-    } else if (map[testY][testX] === 1) {
-      hit = true;
-      hitX = testX;
-      hitY = testY;
-      wallType = 1;
-    } else if (map[testY][testX] === 2) {
-      // Check if door is hit
-      const door = getDoorAt(testX, testY);
-      if (door && !door.isOpen) {
-        hit = true;
-        hitX = testX;
-        hitY = testY;
-        wallType = 2;
-      }
-    }
-  }
+     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+       console.error('Shader compilation error:', gl.getShaderInfoLog(shader));
+       gl.deleteShader(shader);
+       return null;
+     }
 
-  return {distance, wallType};
-}
+     return shader;
+   }
 
-function getDoorAt(x, y) {
-  return doors.find(door => door.x === x && door.y === y);
-}
+   // Initialize shader program
+   function initShaderProgram(gl, vsSource, fsSource) {
+     const vertexShader = compileShader(gl, vsSource, gl.VERTEX_SHADER);
+     const fragmentShader = compileShader(gl, fsSource, gl.FRAGMENT_SHADER);
 
-function normalizeAngle(angle) {
-  angle = angle % (2 * Math.PI);
-  if (angle < 0) angle += 2 * Math.PI;
-  return angle;
-}
+     const shaderProgram = gl.createProgram();
+     gl.attachShader(shaderProgram, vertexShader);
+     gl.attachShader(shaderProgram, fragmentShader);
+     gl.linkProgram(shaderProgram);
 
-function render3DView() {
-  ctx.clearRect(0, 0, width, height);
+     if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+       console.error('Shader program linking error:', gl.getProgramInfoLog(shaderProgram));
+       return null;
+     }
 
-  // Calculate vertical offset for camera bobbing
-  let verticalOffset = 0;
-  if (player.speed !== 0) {
-    verticalOffset = Math.sin(walkCycle) * 6; // 6 pixels vertical bobbing amplitude
-  }
-  
-  // Draw ceiling (top half)
-  ctx.fillStyle = '#0000'; // Sky black color
-  ctx.fillRect(0, 0, width, height / 2 + verticalOffset);
-  
-  // Draw floor (bottom half)
-  ctx.fillStyle = '#0000'; // Black color for floor
-  ctx.fillRect(0, height / 2 + verticalOffset, width, height / 2 - verticalOffset);
+     return shaderProgram;
+   }
 
-  for (let i = 0; i < numRays; i++) {
-    let rayAngle = player.angle - fov / 2 + (i / numRays) * fov;
-    let ray = castRay(rayAngle);
+   // Initialize WebGL resources
+   function initWebGL() {
+     // Create shader program
+     const shaderProgram = initShaderProgram(gl, vertexShaderSource, fragmentShaderSource);
 
-    // Correct fisheye effect
-    let correctedDistance = ray.distance * Math.cos(rayAngle - player.angle);
+     // Get shader attribute and uniform locations
+     const programInfo = {
+       program: shaderProgram,
+       attribLocations: {
+         vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+         textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
+       },
+       uniformLocations: {
+         projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+         modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+         verticalOffset: gl.getUniformLocation(shaderProgram, 'uVerticalOffset'),
+         sampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
+         fogDistance: gl.getUniformLocation(shaderProgram, 'uFogDistance'),
+         wallColor: gl.getUniformLocation(shaderProgram, 'uWallColor'),
+         isTextured: gl.getUniformLocation(shaderProgram, 'uIsTextured'),
+       },
+     };
 
-    // Calculate wall height
-    let wallHeight = (tileSize * height) / correctedDistance;
+     // Create buffers for wall segments
+     const buffers = initBuffers(gl);
 
-    // Choose wall color based on type (normal wall or door)
-    let shade;
-    if (ray.wallType === 2) {
-      // Door color (brownish)
-      shade = 255 - Math.min(255, correctedDistance * 0.5);
-      ctx.fillStyle = `rgb(${shade},${shade * 0.6},${shade * 0.3})`;
-    } else {
-      // Normal wall color
-      shade = 255 - Math.min(255, correctedDistance * 0.5);
-      ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
-    }
+     // Create textures for walls and doors
+     const textures = {
+       wall: createColorTexture(gl, [0.7, 0.7, 0.7]),  // Gray walls
+       door: createColorTexture(gl, [0.6, 0.4, 0.2]),  // Brown doors
+     };
 
-    // Draw vertical slice with vertical offset for bobbing
-    ctx.fillRect(i, (height / 2) - wallHeight / 2 + verticalOffset, 1, wallHeight);
-  }
+     return { programInfo, buffers, textures };
+   }
 
-  // Display "Press E to open" message when near a door
-  if (showInteractionMessage) {
-    ctx.font = '24px Arial';
-    ctx.fillStyle = 'red';
-    ctx.textAlign = 'center';
-    ctx.fillText('Press E to open the door', width / 2, height - 50);
-  }
-}
+   // Create a simple color texture
+   function createColorTexture(gl, color) {
+     const texture = gl.createTexture();
+     gl.bindTexture(gl.TEXTURE_2D, texture);
+     
+     // Create a 1x1 pixel texture with the specified color
+     const pixel = new Uint8Array([
+       Math.floor(color[0] * 255),
+       Math.floor(color[1] * 255),
+       Math.floor(color[2] * 255),
+       255
+     ]);
+     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+     
+     // Set texture parameters
+     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+     
+     return texture;
+   }
 
-function gameLoop() {
-  update();
-  render3DView();
-  requestAnimationFrame(gameLoop);
-}
+   // Initialize buffers for wall rendering
+   function initBuffers(gl) {
+     // Create buffers for a simple quad (two triangles)
+     const positions = [
+       -1.0, -1.0,  0.0,
+        1.0, -1.0,  0.0,
+        1.0,  1.0,  0.0,
+       -1.0,  1.0,  0.0,
+     ];
+     
+     const positionBuffer = gl.createBuffer();
+     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
-function update() {
-  // Update player position based on speed and turnSpeed
-  player.angle += player.turnSpeed;
+     // Texture coordinates
+     const textureCoordinates = [
+       0.0, 1.0,
+       1.0, 1.0,
+       1.0, 0.0,
+       0.0, 0.0,
+     ];
+     
+     const textureCoordBuffer = gl.createBuffer();
+     gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
 
-  let moveStep = player.speed;
-  let newX = player.x + Math.cos(player.angle) * moveStep;
-  let newY = player.y + Math.sin(player.angle) * moveStep;
+     // Element indices
+     const indices = [0, 1, 2, 0, 2, 3];
+     
+     const indexBuffer = gl.createBuffer();
+     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
-  // Collision detection
-  if (!isWall(newX, newY)) {
-    player.x = newX;
-    player.y = newY;
-  }
+     return {
+       position: positionBuffer,
+       textureCoord: textureCoordBuffer,
+       indices: indexBuffer,
+     };
+   }
 
-  // Update walking cycle for camera bobbing if moving
-  if (player.speed !== 0) {
-    walkCycle += 0.13; // Adjust speed of bobbing here
-  } else {
-    walkCycle = 0; // Reset when not moving
-  }
+   // Initialize doors from map
+   function initDoors() {
+     for (let y = 0; y < map.length; y++) {
+       for (let x = 0; x < map[y].length; x++) {
+         if (map[y][x] === 2) {
+           doors.push({
+             x: x,
+             y: y,
+             isOpen: false,
+             openAmount: 0 // 0 = fully closed, 1 = fully open
+           });
+         }
+       }
+     }
+   }
 
-  // Check if player is near a door to show interaction message
-  checkDoorProximity();
+   function getDoorAt(x, y) {
+     return doors.find(door => door.x === x && door.y === y);
+   }
 
-  // Update door animation if any door is in process of opening/closing
-  updateDoors();
-}
+   function normalizeAngle(angle) {
+     angle = angle % (2 * Math.PI);
+     if (angle < 0) angle += 2 * Math.PI;
+     return angle;
+   }
 
-function updateDoors() {
-  for (let door of doors) {
-    if (door.isOpen && door.openAmount < 1) {
-      // Door is opening
-      door.openAmount += 0.05;
-      if (door.openAmount >= 1) {
-        door.openAmount = 1;
-      }
-    } else if (!door.isOpen && door.openAmount > 0) {
-      // Door is closing
-      door.openAmount -= 0.05;
-      if (door.openAmount <= 0) {
-        door.openAmount = 0;
-      }
-    }
-  }
-}
+   function castRay(rayAngle) {
+     rayAngle = normalizeAngle(rayAngle);
 
-function isWall(x, y) {
-  let mapX = Math.floor(x / tileSize);
-  let mapY = Math.floor(y / tileSize);
+     let distance = 0;
+     let hit = false;
+     let hitX = 0;
+     let hitY = 0;
+     let wallType = 0;
+     let texX = 0; // Texture X coordinate
 
-  if (mapX < 0 || mapX >= mapWidth || mapY < 0 || mapY >= mapHeight) {
-    return true;
-  }
-  
-  // Check if it's a wall
-  if (map[mapY][mapX] === 1) {
-    return true;
-  }
-  
-  // Check if it's a closed door
-  if (map[mapY][mapX] === 2) {
-    const door = getDoorAt(mapX, mapY);
-    return door && !door.isOpen;
-  }
-  
-  return false;
-}
+     const rayDirX = Math.cos(rayAngle);
+     const rayDirY = Math.sin(rayAngle);
 
-function checkDoorProximity() {
-  // Check if the player is near a door (within 2 tiles)
-  const doorInteractionDistance = tileSize * 2;
-  
-  showInteractionMessage = false;
-  nearbyDoor = null;
-  
-  for (let door of doors) {
-    const doorX = door.x * tileSize + tileSize / 2;
-    const doorY = door.y * tileSize + tileSize / 2;
-    
-    const distanceToDoor = Math.sqrt(
-      Math.pow(player.x - doorX, 2) + 
-      Math.pow(player.y - doorY, 2)
-    );
-    
-    if (distanceToDoor < doorInteractionDistance) {
-      showInteractionMessage = true;
-      nearbyDoor = door;
-      break;
-    }
-  }
-}
+     // Use DDA (Digital Differential Analysis) algorithm for ray casting
+     // This is more efficient than the original incremental approach
+     
+     // Calculate ray position and direction
+     let mapX = Math.floor(player.x / tileSize);
+     let mapY = Math.floor(player.y / tileSize);
+     
+     // Length of ray from current position to next x or y-side
+     let sideDistX;
+     let sideDistY;
+     
+     // Length of ray from one x or y-side to next x or y-side
+     const deltaDistX = Math.abs(1 / rayDirX);
+     const deltaDistY = Math.abs(1 / rayDirY);
+     
+     // Direction to step in x or y direction (either +1 or -1)
+     let stepX;
+     let stepY;
+     
+     // Calculate step and initial sideDist
+     if (rayDirX < 0) {
+       stepX = -1;
+       sideDistX = (player.x / tileSize - mapX) * deltaDistX;
+     } else {
+       stepX = 1;
+       sideDistX = (mapX + 1.0 - player.x / tileSize) * deltaDistX;
+     }
+     
+     if (rayDirY < 0) {
+       stepY = -1;
+       sideDistY = (player.y / tileSize - mapY) * deltaDistY;
+     } else {
+       stepY = 1;
+       sideDistY = (mapY + 1.0 - player.y / tileSize) * deltaDistY;
+     }
+     
+     // Perform DDA
+     let side; // Was a NS or a EW wall hit?
+     
+     while (!hit && distance < maxDepth) {
+       // Jump to next map square, either in x-direction, or in y-direction
+       if (sideDistX < sideDistY) {
+         sideDistX += deltaDistX;
+         mapX += stepX;
+         side = 0;
+       } else {
+         sideDistY += deltaDistY;
+         mapY += stepY;
+         side = 1;
+       }
+       
+       // Check if ray has hit a wall
+       if (mapX < 0 || mapX >= mapWidth || mapY < 0 || mapY >= mapHeight) {
+         hit = true;
+         distance = maxDepth;
+       } else if (map[mapY][mapX] === 1) {
+         hit = true;
+         wallType = 1;
+         
+         // Calculate exact hit position for texture mapping
+         if (side === 0) {
+           distance = (mapX - player.x / tileSize + (1 - stepX) / 2) / rayDirX;
+           texX = (player.y / tileSize + distance * rayDirY) % 1.0;
+         } else {
+           distance = (mapY - player.y / tileSize + (1 - stepY) / 2) / rayDirY;
+           texX = (player.x / tileSize + distance * rayDirX) % 1.0;
+         }
+         
+         // Scale to tile size
+         distance *= tileSize;
+       } else if (map[mapY][mapX] === 2) {
+         // Check if door is hit
+         const door = getDoorAt(mapX, mapY);
+         if (door && !door.isOpen) {
+           hit = true;
+           wallType = 2;
+           
+           // Calculate exact hit position for texture mapping
+           if (side === 0) {
+             distance = (mapX - player.x / tileSize + (1 - stepX) / 2) / rayDirX;
+             texX = (player.y / tileSize + distance * rayDirY) % 1.0;
+           } else {
+             distance = (mapY - player.y / tileSize + (1 - stepY) / 2) / rayDirY;
+             texX = (player.x / tileSize + distance * rayDirX) % 1.0;
+           }
+           
+           // Scale to tile size
+           distance *= tileSize;
+         }
+       }
+     }
 
-function interactWithDoor() {
-  if (nearbyDoor) {
-    nearbyDoor.isOpen = !nearbyDoor.isOpen;
-  }
-}
+     return { distance, wallType, texX, side };
+   }
 
-let gameStarted = false;
+   // Render the scene using WebGL
+   function render(programInfo, buffers, textures) {
+     gl.clearColor(0.0, 0.0, 0.0, 1.0);
+     gl.clearDepth(1.0);
+     gl.enable(gl.DEPTH_TEST);
+     gl.depthFunc(gl.LEQUAL);
+     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-function handleKeyDown(e) {
-  if (!gameStarted) return;
-  // Arrow keys and WASD for movement
-  if (e.key === 'ArrowUp' || e.key === 'z') {
-    player.speed = 2;
-  } else if (e.key === 'ArrowDown' || e.key === 's') {
-    player.speed = -2;
-  } else if (e.key === 'ArrowLeft' || e.key === 'q') {
-    player.turnSpeed = -0.05;
-  } else if (e.key === 'ArrowRight' || e.key === 'd') {
-    player.turnSpeed = 0.05;
-  } else if (e.key ==='z') {
-    player.speed = 2;
-  } else if (e.key === 's') {
-    player.speed = -2;
-  } else if (e.key === 'q') {
-    player.turnSpeed = -0.05;
-  } else if (e.key === 'd') {
-    player.turnSpeed = 0.05;
-  } else if (e.key === 'e' || e.key === 'E') {
-    // Interact with door when E is pressed
-    interactWithDoor();
-  }
-}
+     // Calculate vertical offset for camera bobbing
+     let verticalOffset = 0;
+     if (player.speed !== 0) {
+       verticalOffset = Math.sin(walkCycle) * 0.05; // Convert to normalized device coordinates
+     }
 
-function handleKeyUp(e) {
-  if (!gameStarted) return;
+     // Create perspective projection matrix
+     const aspect = canvas.clientWidth / canvas.clientHeight;
+     const projectionMatrix = mat4.create();
+     mat4.perspective(projectionMatrix, fov, aspect, 0.1, 100.0);
 
-  if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'z' || e.key === 's') {
-    player.speed = 0;
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'q' || e.key === 'd') {
-    player.turnSpeed = 0;
-  } else if (e.key ==='z') {
-    player.speed = 0;
-  } else if (e.key === 's') {
-    player.speed = -0;
-  } else if (e.key === 'q') {
-    player.turnSpeed = -0.00;
-  } else if (e.key === 'd') {
-    player.turnSpeed = 0.00;
-  }
-}
+     // Set shader program
+     gl.useProgram(programInfo.program);
+     gl.uniform1f(programInfo.uniformLocations.verticalOffset, verticalOffset);
 
-window.addEventListener('keydown', handleKeyDown);
-window.addEventListener('keyup', handleKeyUp);
+     // Set up buffer attributes
+     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+     gl.vertexAttribPointer(
+       programInfo.attribLocations.vertexPosition,
+       3,        // Number of components per vertex
+       gl.FLOAT, // Data type
+       false,    // Normalized
+       0,        // Stride
+       0         // Offset
+     );
+     gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 
-function startGame() {
-  gameStarted = true;
-  initDoors(); // Initialize doors before starting the game
-  gameLoop();
-}
+     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.textureCoord);
+     gl.vertexAttribPointer(
+       programInfo.attribLocations.textureCoord,
+       2,        // Number of components
+       gl.FLOAT, // Data type
+       false,    // Normalized
+       0,        // Stride
+       0         // Offset
+     );
+     gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
 
-startGame();
+     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+
+     // Active texture unit 0
+     gl.activeTexture(gl.TEXTURE0);
+     gl.uniform1i(programInfo.uniformLocations.sampler, 0);
+
+     // Disable texturing initially
+     gl.uniform1i(programInfo.uniformLocations.isTextured, false);
+
+     // Draw ceiling
+     const ceilingModelViewMatrix = mat4.create();
+     mat4.translate(ceilingModelViewMatrix, ceilingModelViewMatrix, [0.0, 0.5, -1.0]);
+     mat4.scale(ceilingModelViewMatrix, ceilingModelViewMatrix, [1.0, 0.5, 1.0]);
+     
+     gl.uniformMatrix4fv(
+       programInfo.uniformLocations.modelViewMatrix,
+       false,
+       ceilingModelViewMatrix
+     );
+     gl.uniformMatrix4fv(
+       programInfo.uniformLocations.projectionMatrix,
+       false,
+       projectionMatrix
+     );
+     
+     gl.uniform3fv(programInfo.uniformLocations.wallColor, [0.1, 0.1, 0.1]); // Dark ceiling
+     gl.uniform1f(programInfo.uniformLocations.fogDistance, 0.0);
+     
+     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+
+     // Draw floor
+     const floorModelViewMatrix = mat4.create();
+     mat4.translate(floorModelViewMatrix, floorModelViewMatrix, [0.0, -0.5, -1.0]);
+     mat4.scale(floorModelViewMatrix, floorModelViewMatrix, [1.0, 0.5, 1.0]);
+     
+     gl.uniformMatrix4fv(
+       programInfo.uniformLocations.modelViewMatrix,
+       false,
+       floorModelViewMatrix
+     );
+     
+     gl.uniform3fv(programInfo.uniformLocations.wallColor, [0.2, 0.2, 0.2]); // Darker floor
+     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+
+     // Set up variables for raycasting
+     const numRays = canvas.width;
+     const rayStep = fov / numRays;
+
+     // Cast rays and draw walls
+     for (let i = 0; i < numRays; i++) {
+       const rayAngle = player.angle - fov / 2 + i * rayStep;
+       const ray = castRay(rayAngle);
+
+       // Correct fisheye effect
+       const correctedDistance = ray.distance * Math.cos(rayAngle - player.angle);
+
+       // Skip rendering for very distant walls
+       if (correctedDistance >= maxDepth) continue;
+
+       // Calculate wall height and position
+       const wallHeight = (tileSize * canvas.height) / correctedDistance;
+       const normalizedHeight = wallHeight / canvas.height;
+       
+       // Calculate the wall's position on screen
+       const wallX = (i / numRays) * 2 - 1; // Convert to normalized device coordinates (-1 to 1)
+       const wallWidth = 2 / numRays; // Width in normalized device coordinates
+       
+       // Set up model view matrix for this wall slice
+       const modelViewMatrix = mat4.create();
+       mat4.translate(modelViewMatrix, modelViewMatrix, [wallX, 0.0, -0.5]);
+       mat4.scale(modelViewMatrix, modelViewMatrix, [wallWidth, normalizedHeight, 1.0]);
+       
+       gl.uniformMatrix4fv(
+         programInfo.uniformLocations.modelViewMatrix,
+         false,
+         modelViewMatrix
+       );
+       
+       // Choose texture based on wall type
+       if (ray.wallType === 2) {
+         // Door texture
+         gl.bindTexture(gl.TEXTURE_2D, textures.door);
+         gl.uniform3fv(programInfo.uniformLocations.wallColor, [0.6, 0.4, 0.2]); // Brown color
+       } else {
+         // Wall texture
+         gl.bindTexture(gl.TEXTURE_2D, textures.wall);
+         
+         // Darken walls based on orientation for a subtle 3D effect
+         if (ray.side === 0) {
+           gl.uniform3fv(programInfo.uniformLocations.wallColor, [0.7, 0.7, 0.7]); // Light gray
+         } else {
+           gl.uniform3fv(programInfo.uniformLocations.wallColor, [0.5, 0.5, 0.5]); // Darker gray
+         }
+       }
+       
+       // Apply fog based on distance
+       gl.uniform1f(
+         programInfo.uniformLocations.fogDistance, 
+         correctedDistance / tileSize
+       );
+       
+       // Draw the wall slice
+       gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+     }
+     
+     // Update interaction message
+     if (showInteractionMessage) {
+       messageEl.textContent = 'Press E to open the door';
+     } else {
+       messageEl.textContent = '';
+     }
+   }
+
+   function update() {
+     // Update player position based on speed and turnSpeed
+     player.angle += player.turnSpeed;
+
+     let moveStep = player.speed;
+     let newX = player.x + Math.cos(player.angle) * moveStep;
+     let newY = player.y + Math.sin(player.angle) * moveStep;
+
+     // Collision detection
+     if (!isWall(newX, newY)) {
+       player.x = newX;
+       player.y = newY;
+     }
+
+     // Update walking cycle for camera bobbing if moving
+     if (player.speed !== 0) {
+       walkCycle += 0.13; // Adjust speed of bobbing here
+     } else {
+       walkCycle = 0; // Reset when not moving
+     }
+
+     // Check if player is near a door to show interaction message
+     checkDoorProximity();
+
+     // Update door animation if any door is in process of opening/closing
+     updateDoors();
+   }
+
+   function isWall(x, y) {
+     let mapX = Math.floor(x / tileSize);
+     let mapY = Math.floor(y / tileSize);
+
+     if (mapX < 0 || mapX >= mapWidth || mapY < 0 || mapY >= mapHeight) {
+       return true;
+     }
+     
+     // Check if it's a wall
+     if (map[mapY][mapX] === 1) {
+       return true;
+     }
+     
+     // Check if it's a closed door
+     if (map[mapY][mapX] === 2) {
+       const door = getDoorAt(mapX, mapY);
+       return door && !door.isOpen;
+     }
+     
+     return false;
+   }
+
+   function updateDoors() {
+     for (let door of doors) {
+       if (door.isOpen && door.openAmount < 1) {
+         // Door is opening
+         door.openAmount += 0.05;
+         if (door.openAmount >= 1) {
+           door.openAmount = 1;
+         }
+       } else if (!door.isOpen && door.openAmount > 0) {
+         // Door is closing
+         door.openAmount -= 0.05;
+         if (door.openAmount <= 0) {
+           door.openAmount = 0;
+         }
+       }
+     }
+   }
+
+   function checkDoorProximity() {
+     // Check if the player is near a door (within 2 tiles)
+     const doorInteractionDistance = tileSize * 2;
+     
+     showInteractionMessage = false;
+     nearbyDoor = null;
+     
+     for (let door of doors) {
+       const doorX = door.x * tileSize + tileSize / 2;
+       const doorY = door.y * tileSize + tileSize / 2;
+       
+       const distanceToDoor = Math.sqrt(
+         Math.pow(player.x - doorX, 2) + 
+         Math.pow(player.y - doorY, 2)
+       );
+       
+       if (distanceToDoor < doorInteractionDistance) {
+         showInteractionMessage = true;
+         nearbyDoor = door;
+         break;
+       }
+     }
+   }
+
+   function interactWithDoor() {
+     if (nearbyDoor) {
+       nearbyDoor.isOpen = !nearbyDoor.isOpen;
+     }
+   }
+
+   function handleKeyDown(e) {
+     if (!gameStarted) return;
+     // Arrow keys and WASD for movement
+     if (e.key === 'ArrowUp' || e.key === 'z') {
+       player.speed = 2;
+     } else if (e.key === 'ArrowDown' || e.key === 's') {
+       player.speed = -2;
+     } else if (e.key === 'ArrowLeft' || e.key === 'q') {
+       player.turnSpeed = -0.05;
+     } else if (e.key === 'ArrowRight' || e.key === 'd') {
+       player.turnSpeed = 0.05;
+     } else if (e.key === 'e' || e.key === 'E') {
+       // Interact with door when E is pressed
+       interactWithDoor();
+     }
+   }
+
+   function handleKeyUp(e) {
+     if (!gameStarted) return;
+
+     if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'z' || e.key === 's') {
+       player.speed = 0;
+     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'q' || e.key === 'd') {
+       player.turnSpeed = 0;
+     }
+   }
+
+   window.addEventListener('keydown', handleKeyDown);
+   window.addEventListener('keyup', handleKeyUp);
+
+   // Simple matrix library implementation (minimized version of gl-matrix)
+   const mat4 = {
+     create: function() {
+       return new Float32Array([
+         1, 0, 0, 0,
+         0, 1, 0, 0,
+         0, 0, 1, 0,
+         0, 0, 0, 1
+       ]);
+     },
+     
+     perspective: function(out, fovy, aspect, near, far) {
+       const f = 1.0 / Math.tan(fovy / 2);
+       out[0] = f / aspect;
+       out[1] = 0;
+       out[2] = 0;
+       out[3] = 0;
+       out[4] = 0;
+       out[5] = f;
+       out[6] = 0;
+       out[7] = 0;
+       out[8] = 0;
+       out[9] = 0;
+       out[10] = (far + near) / (near - far);
+       out[11] = -1;
+       out[12] = 0;
+       out[13] = 0;
+       out[14] = (2 * far * near) / (near - far);
+       out[15] = 0;
+       return out;
+     },
+     
+     translate: function(out, a, v) {
+       const x = v[0], y = v[1], z = v[2];
+       
+       out[12] = a[0] * x + a[4] * y + a[8] * z + a[12];
+       out[13] = a[1] * x + a[5] * y + a[9] * z + a[13];
+       out[14] = a[2] * x + a[6] * y + a[10] * z + a[14];
+       out[15] = a[3] * x + a[7] * y + a[11] * z + a[15];
+       
+       return out;
+     },
+     
+     scale: function(out, a, v) {
+       const x = v[0], y = v[1], z = v[2];
+       
+       out[0] = a[0] * x;
+       out[1] = a[1] * x;
+       out[2] = a[2] * x;
+       out[3] = a[3] * x;
+       out[4] = a[4] * y;
+       out[5] = a[5] * y;
+       out[6] = a[6] * y;
+       out[7] = a[7] * y;
+       out[8] = a[8] * z;
+       out[9] = a[9] * z;
+       out[10] = a[10] * z;
+       out[11] = a[11] * z;
+       
+       return out;
+     }
+   };
+
+   // Main game loop
+   function gameLoop() {
+     update();
+     render(webGLResources.programInfo, webGLResources.buffers, webGLResources.textures);
+     requestAnimationFrame(gameLoop);
+   }
+
+   // Initialize the game
+   function startGame() {
+     gameStarted = true;
+     initDoors(); // Initialize doors before starting the game
+     gameLoop();
+   }
+
+   // Initialize WebGL resources and start the game
+   const webGLResources = initWebGL();
+   startGame();
