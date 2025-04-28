@@ -20,8 +20,8 @@
 
    // Map configuration: 1 = wall, 0 = empty space, 2 = door
    const map = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -32,8 +32,9 @@
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],  // Added a door (2) here
-     [1,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1],
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     [1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1],
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -701,12 +702,11 @@
          player.angle -= 2 * Math.PI;
        }
 
-       // Update vertical look (pitch)
-       player.pitch -= e.movementY * sensitivity;
-       // Clamp pitch between -PI/2 and PI/2
-       const maxPitch = Math.PI / 2;
-       if (player.pitch > maxPitch) player.pitch = maxPitch;
-       if (player.pitch < -maxPitch) player.pitch = -maxPitch;
+       // Remove vertical look (pitch) update to prevent player following mouse up/down
+       // player.pitch -= e.movementY * sensitivity;
+       // const maxPitch = Math.PI / 2;
+       // if (player.pitch > maxPitch) player.pitch = maxPitch;
+       // if (player.pitch < -maxPitch) player.pitch = -maxPitch;
      }
    });
 
