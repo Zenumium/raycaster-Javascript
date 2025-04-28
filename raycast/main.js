@@ -18,34 +18,36 @@
    resizeCanvas();
    window.addEventListener('resize', resizeCanvas);
 
-   // Map configuration: 1 = wall, 0 = empty space, 2 = door
-   const map = [
-     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],  // Added a door (2) here
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-   ];
+// Map configuration: 1 = wall, 0 = empty space, 2 = door
+const map = [
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+  [1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 1, 1, 1, 2, 1, 1, 1, 1, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+];
 
-   // Track door states (open or closed)
-   const doors = [];
+// Track door states (open or closed)
+const doors = [];
+const chests = [];
+
 
    // Game constants
    const mapWidth = map[0].length;
@@ -65,10 +67,11 @@
      strafeSpeed: 0,
    };
 
-   let walkCycle = 0;
-   let showInteractionMessage = false;
-   let nearbyDoor = null;
-   let gameStarted = false;
+let walkCycle = 0;
+let showInteractionMessage = false;
+let nearbyDoor = null;
+let nearbyChest = null;
+let gameStarted = false;
 
    // Shader sources
    const vertexShaderSource = `
@@ -175,11 +178,12 @@
      // Create buffers for wall segments
      const buffers = initBuffers(gl);
 
-     // Create textures for walls and doors
-     const textures = {
-       wall: createColorTexture(gl, [0.7, 0.7, 0.7]),  // Gray walls
-       door: createColorTexture(gl, [0.6, 0.4, 0.2]),  // Brown doors
-     };
+// Create textures for walls, doors, and chests
+const textures = {
+  wall: createColorTexture(gl, [0.7, 0.7, 0.7]),  // Gray walls
+  door: createColorTexture(gl, [0.6, 0.4, 0.2]),  // Brown doors
+  chest: createColorTexture(gl, [0.8, 0.7, 0.1]), // Yellowish chest
+};
 
      return { programInfo, buffers, textures };
    }
@@ -247,25 +251,37 @@
      };
    }
 
-   // Initialize doors from map
-   function initDoors() {
-     for (let y = 0; y < map.length; y++) {
-       for (let x = 0; x < map[y].length; x++) {
-         if (map[y][x] === 2) {
-           doors.push({
-             x: x,
-             y: y,
-             isOpen: false,
-             openAmount: 0 // 0 = fully closed, 1 = fully open
-           });
-         }
-       }
-     }
-   }
+// Initialize doors from map
+function initDoors() {
+  for (let y = 0; y < map.length; y++) {
+    for (let x = 0; x < map[y].length; x++) {
+      if (map[y][x] === 2) {
+        doors.push({
+          x: x,
+          y: y,
+          isOpen: false,
+          openAmount: 0 // 0 = fully closed, 1 = fully open
+        });
+      } else if (map[y][x] === 3) {
+        chests.push({
+          x: x,
+          y: y,
+          isOpen: false,
+          openAmount: 0 // 0 = fully closed, 1 = fully open
+        });
+      }
+    }
+  }
+}
 
-   function getDoorAt(x, y) {
-     return doors.find(door => door.x === x && door.y === y);
-   }
+
+function getDoorAt(x, y) {
+  return doors.find(door => door.x === x && door.y === y);
+}
+
+function getChestAt(x, y) {
+  return chests.find(chest => chest.x === x && chest.y === y);
+}
 
    function normalizeAngle(angle) {
      angle = angle % (2 * Math.PI);
@@ -411,7 +427,7 @@
      gl.vertexAttribPointer(
        programInfo.attribLocations.vertexPosition,
        3,        // Number of components per vertex
-       gl.FLOAT, // Data type
+       gl.FLOAT, // Data typehttp://127.0.0.1:3000/raycast/index.html
        false,    // Normalized
        0,        // Stride
        0         // Offset
@@ -512,6 +528,10 @@
          // Door texture
          gl.bindTexture(gl.TEXTURE_2D, textures.door);
          gl.uniform3fv(programInfo.uniformLocations.wallColor, [0.6, 0.4, 0.2]); // Brown color
+       } else if (ray.wallType === 3) {
+         // Chest texture
+         gl.bindTexture(gl.TEXTURE_2D, textures.chest);
+         gl.uniform3fv(programInfo.uniformLocations.wallColor, [0.8, 0.7, 0.1]); // Yellowish color
        } else {
          // Wall texture
          gl.bindTexture(gl.TEXTURE_2D, textures.wall);
@@ -536,7 +556,11 @@
      
      // Update interaction message
      if (showInteractionMessage) {
-       messageEl.textContent = 'Press E to open the door';
+       if (nearbyDoor) {
+         messageEl.textContent = 'Press E to open the door';
+       } else if (nearbyChest) {
+         messageEl.textContent = 'Press E to open the chest';
+       }
      } else {
        messageEl.textContent = '';
      }
@@ -577,96 +601,152 @@
      updateDoors();
    }
 
-   function isWall(x, y) {
-     let mapX = Math.floor(x / tileSize);
-     let mapY = Math.floor(y / tileSize);
 
-     if (mapX < 0 || mapX >= mapWidth || mapY < 0 || mapY >= mapHeight) {
-       return true;
-     }
-     
-     // Check if it's a wall
-     if (map[mapY][mapX] === 1) {
-       return true;
-     }
-     
-     // Check if it's a closed door
-     if (map[mapY][mapX] === 2) {
-       const door = getDoorAt(mapX, mapY);
-       return door && !door.isOpen;
-     }
-     
-     return false;
-   }
+function isWall(x, y) {
+  let mapX = Math.floor(x / tileSize);
+  let mapY = Math.floor(y / tileSize);
 
-   function updateDoors() {
-     for (let door of doors) {
-       if (door.isOpen && door.openAmount < 1) {
-         // Door is opening
-         door.openAmount += 0.05;
-         if (door.openAmount >= 1) {
-           door.openAmount = 1;
-         }
-       } else if (!door.isOpen && door.openAmount > 0) {
-         // Door is closing
-         door.openAmount -= 0.05;
-         if (door.openAmount <= 0) {
-           door.openAmount = 0;
-         }
-       }
-     }
-   }
+  if (mapX < 0 || mapX >= mapWidth || mapY < 0 || mapY >= mapHeight) {
+    return true;
+  }
+  
+  // Check if it's a wall
+  if (map[mapY][mapX] === 1) {
+    return true;
+  }
+  
+  // Check if it's a closed door
+  if (map[mapY][mapX] === 2) {
+    const door = getDoorAt(mapX, mapY);
+    return door && !door.isOpen;
+  }
+  
+  // Check if it's a closed chest
+  if (map[mapY][mapX] === 3) {
+    const chest = getChestAt(mapX, mapY);
+    return chest && !chest.isOpen;
+  }
+  
+  return false;
+}
 
-   function checkDoorProximity() {
-     // Check if the player is near a door (within 2 tiles)
-     const doorInteractionDistance = tileSize * 2;
-     
-     showInteractionMessage = false;
-     nearbyDoor = null;
-     
-     for (let door of doors) {
-       const doorX = door.x * tileSize + tileSize / 2;
-       const doorY = door.y * tileSize + tileSize / 2;
-       
-       const distanceToDoor = Math.sqrt(
-         Math.pow(player.x - doorX, 2) + 
-         Math.pow(player.y - doorY, 2)
-       );
-       
-       if (distanceToDoor < doorInteractionDistance) {
-         showInteractionMessage = true;
-         nearbyDoor = door;
-         break;
-       }
-     }
-   }
 
-   function interactWithDoor() {
-     if (nearbyDoor) {
-       nearbyDoor.isOpen = !nearbyDoor.isOpen;
-     }
-   }
+function updateDoors() {
+  for (let door of doors) {
+    if (door.isOpen && door.openAmount < 1) {
+      // Door is opening
+      door.openAmount += 0.05;
+      if (door.openAmount >= 1) {
+        door.openAmount = 1;
+      }
+    } else if (!door.isOpen && door.openAmount > 0) {
+      // Door is closing
+      door.openAmount -= 0.05;
+      if (door.openAmount <= 0) {
+        door.openAmount = 0;
+      }
+    }
+  }
 
-   function handleKeyDown(e) {
-     if (!gameStarted) return;
-     // Arrow keys and WASD for movement
-     if (e.key === 'ArrowUp' || e.key === 'z'|| e.key === 'Z' || e.key === 'w'|| e.key === 'W') {
-       player.speed = 2;
-     } else if (e.key === 'ArrowDown' || e.key === 's'|| e.key === 'S') {
-       player.speed = -2;
-     } else if (e.key === 'q'|| e.key === 'Q'|| e.key === 'a'|| e.key === 'A') {
-       player.strafeSpeed = -2;
-     } else if (e.key === 'd'|| e.key === 'D') {
-       player.strafeSpeed = 2;
-     } else if (e.key === 'ArrowLeft') {
-       player.turnSpeed = -0.05;
-     } else if (e.key === 'ArrowRight') {
-       player.turnSpeed = 0.05;
-     } else if (e.key === 'e' || e.key === 'E') {
-       // Interact with door when E is pressed
-       interactWithDoor();
-     }
-   }
+  for (let chest of chests) {
+    if (chest.isOpen && chest.openAmount < 1) {
+      // Chest is opening
+      chest.openAmount += 0.05;
+      if (chest.openAmount >= 1) {
+        chest.openAmount = 1;
+      }
+    } else if (!chest.isOpen && chest.openAmount > 0) {
+      // Chest is closing
+      chest.openAmount -= 0.05;
+      if (chest.openAmount <= 0) {
+        chest.openAmount = 0;
+      }
+    }
+  }
+}
+
+
+function checkDoorProximity() {
+  // Check if the player is near a door or chest (within 2 tiles)
+  const interactionDistance = tileSize * 2;
+  
+  showInteractionMessage = false;
+  nearbyDoor = null;
+  nearbyChest = null;
+  
+  for (let door of doors) {
+    const doorX = door.x * tileSize + tileSize / 2;
+    const doorY = door.y * tileSize + tileSize / 2;
+    
+    const distanceToDoor = Math.sqrt(
+      Math.pow(player.x - doorX, 2) + 
+      Math.pow(player.y - doorY, 2)
+    );
+    
+    if (distanceToDoor < interactionDistance) {
+      showInteractionMessage = true;
+      nearbyDoor = door;
+      break;
+    }
+  }
+  
+  if (!showInteractionMessage) {
+    for (let chest of chests) {
+      const chestX = chest.x * tileSize + tileSize / 2;
+      const chestY = chest.y * tileSize + tileSize / 2;
+      
+      const distanceToChest = Math.sqrt(
+        Math.pow(player.x - chestX, 2) + 
+        Math.pow(player.y - chestY, 2)
+      );
+      
+      if (distanceToChest < interactionDistance) {
+        showInteractionMessage = true;
+        nearbyChest = chest;
+        break;
+      }
+    }
+  }
+}
+
+
+function interactWithDoor() {
+  if (nearbyDoor) {
+    nearbyDoor.isOpen = !nearbyDoor.isOpen;
+  }
+}
+
+function interactWithChest() {
+  if (nearbyChest) {
+    nearbyChest.isOpen = !nearbyChest.isOpen;
+  }
+}
+
+
+function handleKeyDown(e) {
+  if (!gameStarted) return;
+  // Arrow keys and WASD for movement
+  if (e.key === 'ArrowUp' || e.key === 'z'|| e.key === 'Z' || e.key === 'w'|| e.key === 'W') {
+    player.speed = 2;
+  } else if (e.key === 'ArrowDown' || e.key === 's'|| e.key === 'S') {
+    player.speed = -2;
+  } else if (e.key === 'q'|| e.key === 'Q'|| e.key === 'a'|| e.key === 'A') {
+    player.strafeSpeed = -2;
+  } else if (e.key === 'd'|| e.key === 'D') {
+    player.strafeSpeed = 2;
+  } else if (e.key === 'ArrowLeft') {
+    player.turnSpeed = -0.05;
+  } else if (e.key === 'ArrowRight') {
+    player.turnSpeed = 0.05;
+  } else if (e.key === 'e' || e.key === 'E') {
+    // Interact with door or chest when E is pressed
+    if (nearbyDoor) {
+      interactWithDoor();
+    } else if (nearbyChest) {
+      interactWithChest();
+    }
+  }
+}
 
    function handleKeyUp(e) {
      if (!gameStarted) return;
